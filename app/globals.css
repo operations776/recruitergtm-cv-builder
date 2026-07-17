@@ -2,11 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ink: #0f0b1e;
+  --ink-2: #171227;
+  --panel: #1c1633;
+  --panel-line: #2b2347;
+  --violet: #7c3aed;
+  --violet-lite: #a855f7;
+  --text: #f3f0fb;
+  --muted: #9b93b5;
+  --faint: #6a6288;
+  --good: #34d399;
+  --warn: #fbbf24;
+  --bad: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 html,
 body {
   padding: 0;
   margin: 0;
-  background: #faf9ff;
-  color: #1a1a1a;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-body), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient glow behind the app */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(124, 58, 237, 0.22), transparent 60%),
+    radial-gradient(50rem 40rem at 100% 0%, rgba(168, 85, 247, 0.12), transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.font-display {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+}
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Focus ring — always visible for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--violet-lite);
+  outline-offset: 2px;
 }

@@ -27,7 +27,7 @@ export async function extractFingerprint(rawText: string): Promise<ParsedCV> {
           "Return ONLY facts present in the text. Do not invent. " +
           "Respond as JSON with keys: headline, currentRole, currentEmployer, priorEmployer, university, city, country.",
       },
-      { role: "user", content: rawText.slice(0, 12000) },
+      { role: "user", content: rawText.slice(0, 20000) },
     ],
   });
   const obj = JSON.parse(res.choices[0].message.content || "{}");
@@ -98,20 +98,29 @@ export async function structureCV(
         content:
           "You produce a clean, accurate, render-ready CV as JSON for a recruitment agency. " +
           "Merge the pasted CV text with the confirmed person's public profile. " +
+          "BE EXHAUSTIVE: capture EVERY role in the work history (do not stop at the first two), " +
+          "EVERY education entry, EVERY certification/license, and EVERY project mentioned. " +
+          "If the source lists 4 jobs and 20 certifications, output all 4 jobs and all 20 certifications. " +
+          "Preserve exact employer names as written (including rebrands, e.g. a company shown as 'Qemetica' " +
+          "stays 'Qemetica'), exact dates, and exact durations. " +
+          "For each role, keep the real achievement bullets from the source; do not collapse them to one line. " +
           "RULES: Never invent experience, dates, employers, skills, or contact details. " +
           "Only include an email/phone if explicitly present in the provided context; otherwise omit and rely on LinkedIn. " +
-          "Write crisp, professional bullet points. Keep it truthful. " +
+          "For certifications, include the issuer and year when present (e.g. 'Cisco AI Technical Practitioner (AITECH) — Cisco, 2026'). " +
+          "Split skills into technical (tools/tech) and functional (management/process). " +
+          "If a recommendation is present, capture its text and author. " +
           "Respond as JSON matching this TypeScript type: " +
           "{ name, headline, location, contact:{linkedin,email,emailStatus,phone}, about, " +
           "experience:[{title,employer,dates,location,industry,bullets:[string],tags:[string]}], " +
           "education:[{degree,school,field,dates,location}], " +
-          "skills:{technical:[string],functional:[string]}, certifications:[string], languages:[string], " +
+          "skills:{technical:[string],functional:[string]}, certifications:[string], " +
+          "projects:[{name,dates,context,description}], recommendation:{text,author}, languages:[string], " +
           "desired:{role,type,level,cities:[string],salary}, meta:{sourceId,recency,matchConfidence:[string]} }.",
       },
       {
         role: "user",
         content: JSON.stringify({
-          pastedCV: rawText.slice(0, 12000),
+          pastedCV: rawText.slice(0, 40000),
           confirmedPerson: match,
           linkedinContext: linkedinContext?.slice(0, 6000) || "",
         }),
@@ -139,6 +148,8 @@ export async function structureCV(
       functional: obj.skills?.functional || [],
     },
     certifications: obj.certifications || [],
+    projects: obj.projects || [],
+    recommendation: obj.recommendation,
     languages: obj.languages || [],
     desired: obj.desired,
     meta: {

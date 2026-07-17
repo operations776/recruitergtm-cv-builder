@@ -85,6 +85,14 @@ const s = StyleSheet.create({
 
   eduTitle: { fontFamily: "Helvetica-Bold", fontSize: 9.8, color: INK },
   eduMeta: { fontSize: 8.3, color: MUTED, marginBottom: 5 },
+  quote: {
+    borderLeftWidth: 2,
+    borderLeftColor: PURPLE,
+    paddingLeft: 8,
+    marginBottom: 6,
+  },
+  quoteText: { fontSize: 9, color: SLATE, lineHeight: 1.45, fontStyle: "italic" },
+  quoteAuthor: { fontSize: 8, color: MUTED, marginTop: 3 },
 
   footer: {
     position: "absolute",
@@ -241,6 +249,37 @@ export function CVDocument({ cv }: { cv: CandidateCV }) {
                   </Text>
                 </View>
               ))}
+            </>
+          )}
+
+          {cv.projects?.length > 0 && (
+            <>
+              <Text style={s.h2}>Key Projects</Text>
+              <View style={s.rule} />
+              {cv.projects.map((p, i) => (
+                <View key={i} style={{ marginBottom: 6 }} wrap={false}>
+                  <Text style={s.eduTitle}>{p.name}</Text>
+                  <Text style={s.eduMeta}>
+                    {[p.dates, p.context].filter(Boolean).join("  ·  ")}
+                  </Text>
+                  {p.description && (
+                    <Text style={s.bulletText}>{p.description}</Text>
+                  )}
+                </View>
+              ))}
+            </>
+          )}
+
+          {cv.recommendation?.text && (
+            <>
+              <Text style={s.h2}>Recommendation</Text>
+              <View style={s.rule} />
+              <View style={s.quote}>
+                <Text style={s.quoteText}>&ldquo;{cv.recommendation.text}&rdquo;</Text>
+                {cv.recommendation.author && (
+                  <Text style={s.quoteAuthor}>{cv.recommendation.author}</Text>
+                )}
+              </View>
             </>
           )}
 

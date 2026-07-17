@@ -54,6 +54,13 @@ export interface CVDesired {
   salary?: string;
 }
 
+export interface CVProject {
+  name: string;
+  dates?: string;
+  context?: string; // e.g. "Associated with Qemetica"
+  description?: string;
+}
+
 // The final, render-ready CV. This is what /api/pdf consumes.
 export interface CandidateCV {
   name: string;
@@ -65,6 +72,8 @@ export interface CandidateCV {
   education: CVEducation[];
   skills: { technical: string[]; functional: string[] };
   certifications: string[];
+  projects: CVProject[];
+  recommendation?: { text: string; author?: string };
   languages: string[];
   desired?: CVDesired;
   meta?: {
