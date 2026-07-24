@@ -63,11 +63,25 @@ export interface CVProject {
   description?: string;
 }
 
+export interface CVVolunteering {
+  role: string;
+  organization?: string;
+  dates?: string;
+}
+
+export interface CVAward {
+  title: string;
+  issuer?: string;
+  date?: string;
+}
+
 // The final, render-ready CV. This is what /api/pdf consumes.
 export interface CandidateCV {
   name: string;
   headline: string;
   location?: string;
+  /** Profile photo as a data URI (fetched + embedded so it can't expire). */
+  photo?: string;
   contact: CVContact;
   about?: string;
   experience: CVExperience[];
@@ -75,6 +89,8 @@ export interface CandidateCV {
   skills: { technical: string[]; functional: string[] };
   certifications: string[];
   projects: CVProject[];
+  volunteering?: CVVolunteering[];
+  awards?: CVAward[];
   recommendation?: { text: string; author?: string };
   languages: string[];
   desired?: CVDesired;

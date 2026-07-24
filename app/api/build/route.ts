@@ -32,11 +32,13 @@ export async function POST(req: NextRequest) {
     // empty — a failed scrape must never fail the build.
     let linkedinContext = match.summary || "";
     let scraped = false;
+    let photo: string | undefined;
 
     if (match.linkedin) {
       const profile = await scrapeLinkedIn(match.linkedin);
       if (profile?.text) {
         linkedinContext = profile.text;
+        photo = profile.photo;
         scraped = true;
       }
     }
@@ -55,6 +57,8 @@ export async function POST(req: NextRequest) {
     }
 
     const cv = await structureCV(text, match, linkedinContext);
+    // The photo comes from the scrape, not the model — attach it directly.
+    if (photo) cv.photo = photo;
     return NextResponse.json({ cv, scraped });
   } catch (err: any) {
     return NextResponse.json(

@@ -120,7 +120,9 @@ export async function structureCV(
           "experience:[{title,employer,dates,location,industry,bullets:[string],tags:[string]}], " +
           "education:[{degree,school,field,dates,location}], " +
           "skills:{technical:[string],functional:[string]}, certifications:[string], " +
-          "projects:[{name,dates,context,description}], recommendation:{text,author}, languages:[string], " +
+          "projects:[{name,dates,context,description}], " +
+          "volunteering:[{role,organization,dates}], awards:[{title,issuer,date}], " +
+          "recommendation:{text,author}, languages:[string], " +
           "desired:{role,type,level,cities:[string],salary}, meta:{sourceId,recency,matchConfidence:[string]} }.",
       },
       {
@@ -156,6 +158,8 @@ export async function structureCV(
     },
     certifications: obj.certifications || [],
     projects: obj.projects || [],
+    volunteering: obj.volunteering || [],
+    awards: obj.awards || [],
     recommendation: obj.recommendation,
     languages: obj.languages || [],
     desired: obj.desired,

@@ -8,6 +8,7 @@ import {
   View,
   StyleSheet,
   Link,
+  Image,
 } from "@react-pdf/renderer";
 import type { CandidateCV } from "./types";
 
@@ -32,6 +33,13 @@ const s = StyleSheet.create({
     paddingTop: 28,
     paddingHorizontal: 18,
     paddingBottom: 40,
+  },
+  photo: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    marginBottom: 10,
+    objectFit: "cover",
   },
   sideName: { fontFamily: "Helvetica-Bold", fontSize: 16, color: INK, marginBottom: 2 },
   sideHeadline: { fontSize: 9, color: PURPLE, marginBottom: 10, lineHeight: 1.3 },
@@ -124,6 +132,7 @@ export function CVDocument({ cv }: { cv: CandidateCV }) {
 
         {/* ---- Sidebar ---- */}
         <View style={s.sidebar}>
+          {!!cv.photo && <Image src={cv.photo} style={s.photo} />}
           <Text style={s.sideName}>{cv.name}</Text>
           {!!cv.headline && <Text style={s.sideHeadline}>{cv.headline}</Text>}
 
@@ -265,6 +274,36 @@ export function CVDocument({ cv }: { cv: CandidateCV }) {
                   {p.description && (
                     <Text style={s.bulletText}>{p.description}</Text>
                   )}
+                </View>
+              ))}
+            </>
+          )}
+
+          {cv.volunteering && cv.volunteering.length > 0 && (
+            <>
+              <Text style={s.h2}>Volunteering</Text>
+              <View style={s.rule} />
+              {cv.volunteering.map((v, i) => (
+                <View key={i} style={{ marginBottom: 4 }} wrap={false}>
+                  <Text style={s.eduTitle}>
+                    {[v.role, v.organization].filter(Boolean).join(" — ")}
+                  </Text>
+                  {!!v.dates && <Text style={s.eduMeta}>{v.dates}</Text>}
+                </View>
+              ))}
+            </>
+          )}
+
+          {cv.awards && cv.awards.length > 0 && (
+            <>
+              <Text style={s.h2}>Honors &amp; Awards</Text>
+              <View style={s.rule} />
+              {cv.awards.map((a, i) => (
+                <View key={i} style={{ marginBottom: 4 }} wrap={false}>
+                  <Text style={s.eduTitle}>{a.title}</Text>
+                  <Text style={s.eduMeta}>
+                    {[a.issuer, a.date].filter(Boolean).join("  ·  ")}
+                  </Text>
                 </View>
               ))}
             </>

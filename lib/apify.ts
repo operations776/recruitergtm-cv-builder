@@ -16,6 +16,39 @@ export interface ScrapedProfile {
   about?: string;
   location?: string;
   linkedinUrl?: string;
+  /** Profile photo already embedded as a data URI (LinkedIn URLs expire). */
+  photo?: string;
+}
+
+/**
+ * LinkedIn photo URLs are signed and expire, so download the image now and
+ * inline it as a data URI. Returns undefined on any failure — a missing photo
+ * must never break a build.
+ */
+async function embedPhoto(url?: string): Promise<string | undefined> {
+  if (!url) return undefined;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) return undefined;
+    const type = res.headers.get("content-type") || "image/jpeg";
+    if (!type.startsWith("image/")) return undefined;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength > 4_000_000) return undefined; // keep the PDF sane
+    return `data:${type};base64,${buf.toString("base64")}`;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Pick a reasonably sized photo (~400px) from the actor's size list. */
+function pickPhotoUrl(p: any): string | undefined {
+  const sizes = p?.profilePicture?.sizes;
+  if (Array.isArray(sizes) && sizes.length) {
+    const sorted = [...sizes].sort((a, b) => (b.width || 0) - (a.width || 0));
+    const best = sorted.find((s) => (s.width || 0) <= 400) || sorted[0];
+    if (best?.url) return best.url;
+  }
+  return p?.profilePicture?.url || p?.photo || undefined;
 }
 
 function dateText(d: any): string {
@@ -60,7 +93,8 @@ export async function scrapeLinkedIn(
     const p = Array.isArray(items) ? items[0] : null;
     if (!p || (!p.experience && !p.headline && !p.about)) return null;
 
-    return { ...toText(p), linkedinUrl: p.linkedinUrl || url };
+    const photo = await embedPhoto(pickPhotoUrl(p));
+    return { ...toText(p), linkedinUrl: p.linkedinUrl || url, photo };
   } catch {
     return null; // timeouts / network / actor errors are non-fatal
   } finally {
@@ -169,7 +203,43 @@ function toText(p: any): ScrapedProfile {
   if (p.volunteering?.length) {
     lines.push("\nVOLUNTEERING:");
     for (const v of p.volunteering) {
-      lines.push(`- ${v.role || ""} at ${v.organizationName || ""}`);
+      lines.push(
+        `- ${v.role || ""} at ${v.organizationName || ""}${
+          v.duration ? ` (${v.duration})` : ""
+        }`
+      );
+    }
+  }
+
+  if (p.honorsAndAwards?.length) {
+    lines.push("\nHONORS & AWARDS:");
+    for (const a of p.honorsAndAwards) {
+      if (typeof a === "string") lines.push(`- ${a}`);
+      else
+        lines.push(
+          `- ${a.title || ""}${a.issuedBy ? ` — ${a.issuedBy}` : ""}${
+            a.issuedAt ? ` (${a.issuedAt})` : ""
+          }`
+        );
+    }
+  }
+
+  if (p.courses?.length) {
+    lines.push("\nCOURSES:");
+    for (const c of p.courses) {
+      if (typeof c === "string") lines.push(`- ${c}`);
+      else lines.push(`- ${c.title || ""}${c.number ? ` (${c.number})` : ""}`);
+    }
+  }
+
+  if (p.publications?.length) {
+    lines.push("\nPUBLICATIONS:");
+    for (const pub of p.publications) {
+      lines.push(
+        `- ${pub.title || ""}${pub.publishedAt ? ` (${pub.publishedAt})` : ""}${
+          pub.description ? `: ${pub.description}` : ""
+        }`
+      );
     }
   }
 
