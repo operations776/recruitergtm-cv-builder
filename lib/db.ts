@@ -21,10 +21,15 @@ export interface RunRecord extends RunSummary {
 }
 
 function connectionString(): string | null {
+  // Vercel's Neon integration injects one of these depending on how the
+  // database was attached; accept them all so the feature just works.
   return (
     process.env.DATABASE_URL ||
     process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
     process.env.DATABASE_URL_UNPOOLED ||
+    process.env.POSTGRES_URL_NON_POOLING ||
+    process.env.NEON_DATABASE_URL ||
     null
   );
 }
@@ -59,6 +64,26 @@ async function ensureTable(sql: Sql) {
   `;
   await sql`CREATE INDEX IF NOT EXISTS cv_runs_created_at_idx ON cv_runs (created_at DESC)`;
   ensured = true;
+}
+
+/**
+ * Verify the database is actually reachable and the table exists.
+ * Returns only a boolean and a row count — never any candidate data.
+ */
+export async function dbPing(): Promise<{
+  ok: boolean;
+  runs: number | null;
+  error?: string;
+}> {
+  const sql = sqlClient();
+  if (!sql) return { ok: false, runs: null, error: "No connection string" };
+  try {
+    await ensureTable(sql);
+    const rows = (await sql`SELECT count(*)::int AS n FROM cv_runs`) as any[];
+    return { ok: true, runs: rows[0]?.n ?? 0 };
+  } catch (e: any) {
+    return { ok: false, runs: null, error: e?.message?.slice(0, 200) };
+  }
 }
 
 /** Persist a finished CV. Returns the new run id, or null when unavailable. */

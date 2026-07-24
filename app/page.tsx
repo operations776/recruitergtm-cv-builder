@@ -33,6 +33,7 @@ export default function Home() {
 
   // Past runs, so the team can find and re-export earlier CVs.
   const [runs, setRuns] = useState<RunSummary[]>([]);
+  const [historyOn, setHistoryOn] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -190,7 +191,10 @@ export default function Home() {
     try {
       const r = await fetch("/api/runs", { headers: authHeaders });
       const d = await r.json();
-      if (r.ok) setRuns(d.runs || []);
+      if (r.ok) {
+        setRuns(d.runs || []);
+        setHistoryOn(!!d.enabled);
+      }
     } catch {
       /* history is optional — stay quiet */
     } finally {
@@ -238,7 +242,7 @@ export default function Home() {
         <Rail steps={STEPS} activeIndex={activeIndex} />
 
         <section className="min-w-0">
-          {stage !== "gate" && runs.length > 0 && (
+          {stage !== "gate" && historyOn && (
             <div className="mb-5">
               <button
                 onClick={() => {
@@ -247,7 +251,8 @@ export default function Home() {
                 }}
                 className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--violet-lite)] transition"
               >
-                {showHistory ? "Hide" : "Show"} past CVs ({runs.length})
+                {showHistory ? "Hide" : "Show"} past CVs
+                {runs.length ? ` (${runs.length})` : ""}
               </button>
               {showHistory && (
                 <HistoryList
@@ -654,6 +659,11 @@ function HistoryList({
     <div className="mt-3 rounded-xl border border-[var(--panel-line)] bg-[var(--ink-2)] divide-y divide-[var(--panel-line)] overflow-hidden">
       {loading && (
         <div className="px-4 py-3 text-xs text-[var(--faint)]">Loading…</div>
+      )}
+      {!loading && runs.length === 0 && (
+        <div className="px-4 py-3 text-xs text-[var(--faint)]">
+          No CVs yet. Every CV you build gets saved here.
+        </div>
       )}
       {runs.map((r) => (
         <button
