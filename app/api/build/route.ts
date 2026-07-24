@@ -4,10 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkPassword, unauthorized } from "@/lib/auth";
 import { structureCV } from "@/lib/openai";
 import { exaPeopleSearch } from "@/lib/exa";
+import { scrapeLinkedIn } from "@/lib/apify";
 import type { MatchCandidate } from "@/lib/types";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Scrape (up to ~90s) plus the structuring call needs more headroom.
+export const maxDuration = 180;
 
 export async function POST(req: NextRequest) {
   if (!checkPassword(req)) return unauthorized();
@@ -24,9 +26,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Pull a bit of LinkedIn context to enrich (best-effort; ignore failures).
+    // Best source first: scrape the actual LinkedIn profile (full role
+    // descriptions, certifications, projects, recommendations). Falls back to
+    // Exa summaries when there's no token, no URL, or the scrape comes back
+    // empty — a failed scrape must never fail the build.
     let linkedinContext = match.summary || "";
+    let scraped = false;
+
     if (match.linkedin) {
+      const profile = await scrapeLinkedIn(match.linkedin);
+      if (profile?.text) {
+        linkedinContext = profile.text;
+        scraped = true;
+      }
+    }
+
+    if (!scraped) {
       try {
         const r = await exaPeopleSearch(
           `${match.name} ${match.company || ""} LinkedIn profile`,
@@ -40,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cv = await structureCV(text, match, linkedinContext);
-    return NextResponse.json({ cv });
+    return NextResponse.json({ cv, scraped });
   } catch (err: any) {
     return NextResponse.json(
       { error: err?.message || "Build failed" },

@@ -98,6 +98,10 @@ export async function structureCV(
         content:
           "You produce a clean, accurate, render-ready CV as JSON for a recruitment agency. " +
           "Merge the pasted CV text with the confirmed person's public profile. " +
+          "When linkedinContext is a scraped LinkedIn profile it is the FRESHER, more authoritative " +
+          "source: prefer its employer names, role splits, dates and achievement bullets over the " +
+          "pasted text where they disagree (the paste may use an old company name or merge roles). " +
+          "Normalise language names to English (e.g. 'Engleză' -> 'English'). " +
           "BE EXHAUSTIVE: capture EVERY role in the work history (do not stop at the first two), " +
           "EVERY education entry, EVERY certification/license, and EVERY project mentioned. " +
           "If the source lists 4 jobs and 20 certifications, output all 4 jobs and all 20 certifications. " +
@@ -124,7 +128,7 @@ export async function structureCV(
         content: JSON.stringify({
           pastedCV: rawText.slice(0, 40000),
           confirmedPerson: match,
-          linkedinContext: linkedinContext?.slice(0, 6000) || "",
+          linkedinContext: linkedinContext?.slice(0, 24000) || "",
         }),
       },
     ],
