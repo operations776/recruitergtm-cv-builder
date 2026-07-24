@@ -102,12 +102,20 @@ export async function structureCV(
           "source: prefer its employer names, role splits, dates and achievement bullets over the " +
           "pasted text where they disagree (the paste may use an old company name or merge roles). " +
           "Normalise language names to English (e.g. 'Engleză' -> 'English'). " +
+          "Clean up locations: drop garbled or duplicated administrative fragments and output a " +
+          "human 'City, Country' (e.g. 'Islamabad, Islmbd, Pakistan' -> 'Islamabad, Pakistan'). " +
+          "Apply the same cleanup to each role's location. " +
           "BE EXHAUSTIVE: capture EVERY role in the work history (do not stop at the first two), " +
           "EVERY education entry, EVERY certification/license, and EVERY project mentioned. " +
           "If the source lists 4 jobs and 20 certifications, output all 4 jobs and all 20 certifications. " +
           "Preserve exact employer names as written (including rebrands, e.g. a company shown as 'Qemetica' " +
           "stays 'Qemetica'), exact dates, and exact durations. " +
           "For each role, keep the real achievement bullets from the source; do not collapse them to one line. " +
+          "'about' must be a TIGHT professional summary of 3-4 sentences (roughly 55-80 words). If the " +
+          "source About is a long wall of text, compress it: lead with what they do and their years of " +
+          "experience, then the strongest concrete proof points. Never reproduce it verbatim. " +
+          "Keep each skill label short (under ~28 characters) so it fits a CV sidebar: split compound " +
+          "entries like 'LLM APIs (GPT, Claude, Gemini)' into separate skills ('GPT', 'Claude', 'Gemini'). " +
           "RULES: Never invent experience, dates, employers, skills, or contact details. " +
           "Only include an email/phone if explicitly present in the provided context; otherwise omit and rely on LinkedIn. " +
           "For certifications, include the issuer and year when present (e.g. 'Cisco AI Technical Practitioner (AITECH) — Cisco, 2026'). " +

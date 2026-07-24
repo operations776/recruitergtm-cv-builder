@@ -62,12 +62,15 @@ const s = StyleSheet.create({
     borderRadius: 3,
     marginRight: 3,
     marginBottom: 3,
+    // Keep long skills (e.g. "LLM APIs (GPT, Claude, Gemini)") inside the
+    // sidebar instead of bleeding into the main column.
+    maxWidth: SIDEBAR_W - 36,
   },
   chipWrap: { flexDirection: "row", flexWrap: "wrap" },
   link: { color: DARK, textDecoration: "none" },
 
   // Main
-  main: { flex: 1, paddingTop: 28, paddingHorizontal: 22, paddingBottom: 40 },
+  main: { flex: 1, paddingTop: 28, paddingHorizontal: 22, paddingBottom: 34 },
   brandRow: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 6 },
   brandMark: { fontFamily: "Helvetica-Bold", fontSize: 11, color: PURPLE },
   brandSub: { fontSize: 6.5, color: MUTED, textAlign: "right" },
@@ -88,6 +91,10 @@ const s = StyleSheet.create({
   bullet: { flexDirection: "row", marginBottom: 2 },
   bulletDot: { color: PURPLE, marginRight: 5, fontSize: 9.5 },
   bulletText: { flex: 1, fontSize: 9.3, color: SLATE, lineHeight: 1.4 },
+  // Plain body text for block sections (projects, quotes). Must NOT use
+  // bulletText: its flex:1 is for the bullet row and makes stacked blocks
+  // collapse on top of each other.
+  bodyText: { fontSize: 9.3, color: SLATE, lineHeight: 1.4 },
   tags: { fontSize: 8, color: MUTED, marginTop: 2 },
   expBlock: { marginBottom: 9 },
 
@@ -104,8 +111,8 @@ const s = StyleSheet.create({
 
   footer: {
     position: "absolute",
-    bottom: 18,
-    left: 0,
+    bottom: 14,
+    left: SIDEBAR_W,
     right: 0,
     textAlign: "center",
     fontSize: 7,
@@ -226,8 +233,13 @@ export function CVDocument({ cv }: { cv: CandidateCV }) {
               <Text style={s.h2}>Professional Experience</Text>
               <View style={s.rule} />
               {cv.experience.map((e, i) => (
-                <View key={i} style={s.expBlock} wrap={false}>
-                  <Text style={s.expTitle}>{e.title}</Text>
+                // Allow long roles to flow across a page break; minPresenceAhead
+                // keeps the heading with at least some of its bullets instead of
+                // stranding it (or overlaying it) at the bottom of a page.
+                <View key={i} style={s.expBlock}>
+                  <Text style={s.expTitle} minPresenceAhead={50}>
+                    {e.title}
+                  </Text>
                   <Text style={s.expMeta}>
                     {[e.employer, e.dates, e.location, e.industry]
                       .filter(Boolean)
@@ -266,13 +278,18 @@ export function CVDocument({ cv }: { cv: CandidateCV }) {
               <Text style={s.h2}>Key Projects</Text>
               <View style={s.rule} />
               {cv.projects.map((p, i) => (
-                <View key={i} style={{ marginBottom: 6 }} wrap={false}>
-                  <Text style={s.eduTitle}>{p.name}</Text>
+                // No wrap={false} here: project descriptions can be long, and
+                // forcing them to stay whole makes react-pdf overlay them on
+                // top of the next block when they don't fit the page.
+                <View key={i} style={{ marginBottom: 6 }}>
+                  <Text style={s.eduTitle} minPresenceAhead={40}>
+                    {p.name}
+                  </Text>
                   <Text style={s.eduMeta}>
                     {[p.dates, p.context].filter(Boolean).join("  ·  ")}
                   </Text>
                   {p.description && (
-                    <Text style={s.bulletText}>{p.description}</Text>
+                    <Text style={s.bodyText}>{p.description}</Text>
                   )}
                 </View>
               ))}
@@ -346,11 +363,14 @@ export function CVDocument({ cv }: { cv: CandidateCV }) {
               </>
             )}
 
-          <Text style={s.footer} fixed>
-            Prepared by RecruiterGTM
-            {cv.meta?.recency ? `  ·  ${cv.meta.recency}` : ""}
-          </Text>
         </View>
+
+        {/* Footer sits at Page level, not inside the flex column — nesting an
+            absolutely-positioned fixed element inside the content column made
+            react-pdf mis-measure the remaining height and overlap blocks. */}
+        <Text style={s.footer} fixed>
+          Prepared by RecruiterGTM
+        </Text>
       </Page>
     </Document>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import type { CandidateCV, MatchCandidate } from "@/lib/types";
+import type { RunSummary } from "@/lib/db";
 
 type Stage = "gate" | "paste" | "confirm" | "preview";
 
@@ -30,6 +31,11 @@ export default function Home() {
     text: string;
   } | null>(null);
 
+  // Past runs, so the team can find and re-export earlier CVs.
+  const [runs, setRuns] = useState<RunSummary[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const authHeaders = {
     "Content-Type": "application/json",
     "x-app-password": password,
@@ -42,6 +48,7 @@ export default function Home() {
       const r = await fetch("/api/login", { method: "POST", headers: authHeaders });
       if (!r.ok) throw new Error("That password didn't match. Try again.");
       setStage("paste");
+      loadHistory();
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -83,6 +90,7 @@ export default function Home() {
       if (!r.ok) throw new Error(data.error || "Couldn't build the CV. Try again.");
       setCv(data.cv);
       setStage("preview");
+      loadHistory();
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -177,6 +185,40 @@ export default function Home() {
     }
   }
 
+  async function loadHistory() {
+    setHistoryLoading(true);
+    try {
+      const r = await fetch("/api/runs", { headers: authHeaders });
+      const d = await r.json();
+      if (r.ok) setRuns(d.runs || []);
+    } catch {
+      /* history is optional — stay quiet */
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function openRun(id: string) {
+    setError("");
+    setHistoryLoading(true);
+    try {
+      const r = await fetch(`/api/runs?id=${encodeURIComponent(id)}`, {
+        headers: authHeaders,
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Couldn't open that run.");
+      setCv(d.run.cv);
+      setMatch(null);
+      setEnrichNote(null);
+      setShowHistory(false);
+      setStage("preview");
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
   function reset() {
     setText("");
     setMatch(null);
@@ -196,6 +238,27 @@ export default function Home() {
         <Rail steps={STEPS} activeIndex={activeIndex} />
 
         <section className="min-w-0">
+          {stage !== "gate" && runs.length > 0 && (
+            <div className="mb-5">
+              <button
+                onClick={() => {
+                  setShowHistory((v) => !v);
+                  if (!showHistory) loadHistory();
+                }}
+                className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--violet-lite)] transition"
+              >
+                {showHistory ? "Hide" : "Show"} past CVs ({runs.length})
+              </button>
+              {showHistory && (
+                <HistoryList
+                  runs={runs}
+                  loading={historyLoading}
+                  onOpen={openRun}
+                />
+              )}
+            </div>
+          )}
+
           {error && (
             <div
               role="alert"
@@ -576,6 +639,48 @@ function MatchCard({ match }: { match: MatchCandidate }) {
 
 /* ---------- CV preview (mirrors the PDF) ---------- */
 
+/* ---------- Past runs ---------- */
+
+function HistoryList({
+  runs,
+  loading,
+  onOpen,
+}: {
+  runs: RunSummary[];
+  loading: boolean;
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <div className="mt-3 rounded-xl border border-[var(--panel-line)] bg-[var(--ink-2)] divide-y divide-[var(--panel-line)] overflow-hidden">
+      {loading && (
+        <div className="px-4 py-3 text-xs text-[var(--faint)]">Loading…</div>
+      )}
+      {runs.map((r) => (
+        <button
+          key={r.id}
+          onClick={() => onOpen(r.id)}
+          className="w-full text-left px-4 py-3 hover:bg-[var(--panel)] transition flex items-baseline justify-between gap-3"
+        >
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-[var(--text)] truncate">
+              {r.name}
+            </span>
+            <span className="block text-[11px] text-[var(--muted)] truncate">
+              {[r.company, r.headline].filter(Boolean).join(" · ")}
+            </span>
+          </span>
+          <span className="shrink-0 text-[11px] font-mono text-[var(--faint)]">
+            {new Date(r.createdAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            })}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ---------- Contact enrichment (Prospeo) ---------- */
 
 function ContactBlock({
@@ -694,6 +799,14 @@ function CVPreview({ cv }: { cv: CandidateCV }) {
       <div className="grid grid-cols-1 sm:grid-cols-[190px_1fr]">
         <aside className="bg-[#f5f3ff] p-5 space-y-4">
           <div>
+            {cv.photo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cv.photo}
+                alt=""
+                className="w-[68px] h-[68px] rounded-full object-cover mb-3"
+              />
+            )}
             <div className="font-display text-lg font-semibold leading-tight">
               {cv.name}
             </div>
@@ -800,11 +913,16 @@ function PreviewChips({ label, items }: { label: string; items: string[] }) {
         {items.slice(0, 12).map((k, i) => (
           <span
             key={i}
-            className="text-[10px] bg-white text-[#5b21b6] rounded px-1.5 py-0.5 border border-[#e5e7eb]"
+            className="text-[10px] bg-white text-[#5b21b6] rounded px-1.5 py-0.5 border border-[#e5e7eb] max-w-full break-words leading-snug"
           >
             {k}
           </span>
         ))}
+        {items.length > 12 && (
+          <span className="text-[10px] text-[#9ca3af] px-1 py-0.5">
+            +{items.length - 12} more
+          </span>
+        )}
       </div>
     </div>
   );

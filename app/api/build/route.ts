@@ -5,6 +5,7 @@ import { checkPassword, unauthorized } from "@/lib/auth";
 import { structureCV } from "@/lib/openai";
 import { exaPeopleSearch } from "@/lib/exa";
 import { scrapeLinkedIn } from "@/lib/apify";
+import { saveRun } from "@/lib/db";
 import type { MatchCandidate } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -59,7 +60,11 @@ export async function POST(req: NextRequest) {
     const cv = await structureCV(text, match, linkedinContext);
     // The photo comes from the scrape, not the model — attach it directly.
     if (photo) cv.photo = photo;
-    return NextResponse.json({ cv, scraped });
+
+    // Record the run so the team can find it later (no-ops without a DB).
+    const runId = await saveRun(cv, match.confidence);
+
+    return NextResponse.json({ cv, scraped, runId });
   } catch (err: any) {
     return NextResponse.json(
       { error: err?.message || "Build failed" },
