@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { CandidateCV, MatchCandidate } from "@/lib/types";
 import type { RunSummary } from "@/lib/db";
@@ -236,34 +236,27 @@ export default function Home() {
 
   return (
     <div className="relative z-10 min-h-screen flex flex-col">
-      <TopBar />
+      <TopBar
+        showHistoryButton={stage !== "gate" && historyOn}
+        count={runs.length}
+        onOpenHistory={() => {
+          setShowHistory(true);
+          loadHistory();
+        }}
+      />
+
+      <HistoryDrawer
+        open={showHistory}
+        runs={runs}
+        loading={historyLoading}
+        onClose={() => setShowHistory(false)}
+        onOpen={openRun}
+      />
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-5 sm:px-8 py-8 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8">
         <Rail steps={STEPS} activeIndex={activeIndex} />
 
         <section className="min-w-0">
-          {stage !== "gate" && historyOn && (
-            <div className="mb-5">
-              <button
-                onClick={() => {
-                  setShowHistory((v) => !v);
-                  if (!showHistory) loadHistory();
-                }}
-                className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--violet-lite)] transition"
-              >
-                {showHistory ? "Hide" : "Show"} past CVs
-                {runs.length ? ` (${runs.length})` : ""}
-              </button>
-              {showHistory && (
-                <HistoryList
-                  runs={runs}
-                  loading={historyLoading}
-                  onOpen={openRun}
-                />
-              )}
-            </div>
-          )}
-
           {error && (
             <div
               role="alert"
@@ -376,9 +369,17 @@ export default function Home() {
 
 /* ---------- Shell ---------- */
 
-function TopBar() {
+function TopBar({
+  showHistoryButton,
+  count,
+  onOpenHistory,
+}: {
+  showHistoryButton: boolean;
+  count: number;
+  onOpenHistory: () => void;
+}) {
   return (
-    <header className="border-b border-[var(--panel-line)] bg-[rgba(15,11,30,0.7)] backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-[var(--panel-line)] bg-[rgba(15,11,30,0.82)] backdrop-blur">
       <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center gap-3">
         <Image
           src="/logo.png"
@@ -393,11 +394,41 @@ function TopBar() {
           </div>
           <div className="text-[11px] text-[var(--muted)]">by RecruiterGTM</div>
         </div>
-        <span className="ml-auto text-[11px] font-mono text-[var(--faint)] hidden sm:block">
-          paste · match · build
-        </span>
+
+        {showHistoryButton && (
+          <button
+            onClick={onOpenHistory}
+            className="ml-auto inline-flex items-center gap-2 rounded-lg border border-[var(--panel-line)] bg-[var(--ink-2)] px-3 py-2 text-xs font-semibold text-[var(--text)] hover:border-[var(--violet-lite)] hover:text-[var(--violet-lite)] transition"
+          >
+            <ClockIcon />
+            Past CVs
+            {count > 0 && (
+              <span className="rounded-full bg-[var(--violet)] px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                {count}
+              </span>
+            )}
+          </button>
+        )}
       </div>
     </header>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
   );
 }
 
@@ -646,48 +677,170 @@ function MatchCard({ match }: { match: MatchCandidate }) {
 
 /* ---------- Past runs ---------- */
 
-function HistoryList({
+/** Friendly relative time: "2h ago", "Yesterday", "12 Mar". */
+function timeAgo(iso: string): string {
+  const then = new Date(iso).getTime();
+  const mins = Math.floor((Date.now() - then) / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() || "")
+    .join("");
+}
+
+function HistoryDrawer({
+  open,
   runs,
   loading,
+  onClose,
   onOpen,
 }: {
+  open: boolean;
   runs: RunSummary[];
   loading: boolean;
+  onClose: () => void;
   onOpen: (id: string) => void;
 }) {
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  const term = q.trim().toLowerCase();
+  const filtered = term
+    ? runs.filter((r) =>
+        [r.name, r.company, r.headline]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(term)
+      )
+    : runs;
+
   return (
-    <div className="mt-3 rounded-xl border border-[var(--panel-line)] bg-[var(--ink-2)] divide-y divide-[var(--panel-line)] overflow-hidden">
-      {loading && (
-        <div className="px-4 py-3 text-xs text-[var(--faint)]">Loading…</div>
-      )}
-      {!loading && runs.length === 0 && (
-        <div className="px-4 py-3 text-xs text-[var(--faint)]">
-          No CVs yet. Every CV you build gets saved here.
+    <>
+      {/* Scrim */}
+      <div
+        onClick={onClose}
+        aria-hidden={!open}
+        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] transition-opacity duration-200 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      <aside
+        role="dialog"
+        aria-label="Past CVs"
+        aria-hidden={!open}
+        className={`fixed right-0 top-0 z-50 h-full w-full max-w-[400px] border-l border-[var(--panel-line)] bg-[var(--ink)] shadow-2xl transition-transform duration-250 ease-out flex flex-col ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3 px-5 h-16 border-b border-[var(--panel-line)] shrink-0">
+          <div>
+            <h2 className="font-display font-semibold text-[15px] leading-none">
+              Past CVs
+            </h2>
+            <p className="text-[11px] text-[var(--muted)] mt-1">
+              {runs.length === 0
+                ? "Nothing saved yet"
+                : `${runs.length} saved`}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-lg border border-[var(--panel-line)] px-2.5 py-1.5 text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--violet-lite)] transition"
+          >
+            ✕
+          </button>
         </div>
-      )}
-      {runs.map((r) => (
-        <button
-          key={r.id}
-          onClick={() => onOpen(r.id)}
-          className="w-full text-left px-4 py-3 hover:bg-[var(--panel)] transition flex items-baseline justify-between gap-3"
-        >
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold text-[var(--text)] truncate">
-              {r.name}
-            </span>
-            <span className="block text-[11px] text-[var(--muted)] truncate">
-              {[r.company, r.headline].filter(Boolean).join(" · ")}
-            </span>
-          </span>
-          <span className="shrink-0 text-[11px] font-mono text-[var(--faint)]">
-            {new Date(r.createdAt).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-        </button>
-      ))}
-    </div>
+
+        {runs.length > 0 && (
+          <div className="px-5 py-3 border-b border-[var(--panel-line)] shrink-0">
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search name or company…"
+              className="w-full rounded-lg bg-[var(--ink-2)] border border-[var(--panel-line)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--faint)] outline-none focus:border-[var(--violet-lite)] transition"
+            />
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto">
+          {loading && (
+            <div className="px-5 py-4 text-xs text-[var(--faint)]">Loading…</div>
+          )}
+
+          {!loading && runs.length === 0 && (
+            <div className="px-5 py-10 text-center">
+              <div className="text-3xl mb-3 opacity-40">📄</div>
+              <p className="text-sm text-[var(--muted)]">No CVs yet</p>
+              <p className="text-xs text-[var(--faint)] mt-1">
+                Every CV you build is saved here automatically.
+              </p>
+            </div>
+          )}
+
+          {!loading && runs.length > 0 && filtered.length === 0 && (
+            <div className="px-5 py-8 text-center text-xs text-[var(--faint)]">
+              No matches for “{q}”.
+            </div>
+          )}
+
+          <ul className="divide-y divide-[var(--panel-line)]">
+            {filtered.map((r) => (
+              <li key={r.id}>
+                <button
+                  onClick={() => onOpen(r.id)}
+                  className="group w-full text-left px-5 py-3.5 hover:bg-[var(--ink-2)] transition flex items-center gap-3"
+                >
+                  <span className="shrink-0 grid place-items-center w-9 h-9 rounded-full bg-[var(--violet)]/15 text-[var(--violet-lite)] text-[11px] font-bold">
+                    {initials(r.name)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-[var(--text)] truncate">
+                      {r.name}
+                    </span>
+                    <span className="block text-[11px] text-[var(--muted)] truncate">
+                      {[r.company, r.headline].filter(Boolean).join(" · ") ||
+                        "—"}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="block text-[10px] font-mono text-[var(--faint)]">
+                      {timeAgo(r.createdAt)}
+                    </span>
+                    <span className="mt-1 block text-[10px] text-[var(--violet-lite)] opacity-0 group-hover:opacity-100 transition">
+                      Open →
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+    </>
   );
 }
 
