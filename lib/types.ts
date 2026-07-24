@@ -44,6 +44,8 @@ export interface CVContact {
   email?: string;
   emailStatus?: "verified" | "inferred" | "unknown";
   phone?: string;
+  /** Current employer's domain, e.g. "dentons.com" — used to match on Prospeo. */
+  companyDomain?: string;
 }
 
 export interface CVDesired {

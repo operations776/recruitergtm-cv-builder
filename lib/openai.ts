@@ -109,8 +109,10 @@ export async function structureCV(
           "For certifications, include the issuer and year when present (e.g. 'Cisco AI Technical Practitioner (AITECH) — Cisco, 2026'). " +
           "Split skills into technical (tools/tech) and functional (management/process). " +
           "If a recommendation is present, capture its text and author. " +
+          "Set contact.companyDomain to the current employer's website domain (e.g. 'dentons.com') " +
+          "when you can infer it confidently from the employer name; otherwise leave it out. " +
           "Respond as JSON matching this TypeScript type: " +
-          "{ name, headline, location, contact:{linkedin,email,emailStatus,phone}, about, " +
+          "{ name, headline, location, contact:{linkedin,email,emailStatus,phone,companyDomain}, about, " +
           "experience:[{title,employer,dates,location,industry,bullets:[string],tags:[string]}], " +
           "education:[{degree,school,field,dates,location}], " +
           "skills:{technical:[string],functional:[string]}, certifications:[string], " +
@@ -139,6 +141,7 @@ export async function structureCV(
       email: obj.contact?.email,
       emailStatus: obj.contact?.emailStatus || "unknown",
       phone: obj.contact?.phone,
+      companyDomain: obj.contact?.companyDomain,
     },
     about: obj.about,
     experience: obj.experience || [],

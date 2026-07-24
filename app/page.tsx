@@ -22,6 +22,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Contact enrichment (Prospeo) — each button tracks its own state so one
+  // can run while the other stays clickable.
+  const [enriching, setEnriching] = useState<null | "email" | "phone">(null);
+  const [enrichNote, setEnrichNote] = useState<{
+    kind: "ok" | "miss";
+    text: string;
+  } | null>(null);
+
   const authHeaders = {
     "Content-Type": "application/json",
     "x-app-password": password,
@@ -111,11 +119,70 @@ export default function Home() {
     }
   }
 
+  async function enrich(mode: "email" | "phone") {
+    if (!cv) return;
+    setError("");
+    setEnrichNote(null);
+    setEnriching(mode);
+    try {
+      const r = await fetch("/api/enrich", {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ cv, mode }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Couldn't run the lookup.");
+
+      // Merge whatever came back into the CV so it lands in the PDF too.
+      setCv((prev) =>
+        prev
+          ? {
+              ...prev,
+              contact: {
+                ...prev.contact,
+                email: d.email || prev.contact.email,
+                emailStatus: d.email
+                  ? d.emailStatus === "VERIFIED"
+                    ? "verified"
+                    : "unknown"
+                  : prev.contact.emailStatus,
+                phone: d.mobile || prev.contact.phone,
+              },
+            }
+          : prev
+      );
+
+      const got = mode === "phone" ? d.mobile : d.email;
+      if (got) {
+        setEnrichNote({
+          kind: "ok",
+          text:
+            mode === "phone"
+              ? `Mobile found. ${d.creditsUsed} credits used.`
+              : `Email found. ${d.creditsUsed} credit used.`,
+        });
+      } else {
+        setEnrichNote({
+          kind: "miss",
+          text:
+            mode === "phone"
+              ? "No mobile on record for this person. No credits charged."
+              : "No email on record for this person. No credits charged.",
+        });
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setEnriching(null);
+    }
+  }
+
   function reset() {
     setText("");
     setMatch(null);
     setCv(null);
     setError("");
+    setEnrichNote(null);
     setStage("paste");
   }
 
@@ -215,6 +282,14 @@ export default function Home() {
               hint="Branded, two-column, ready to send. Download the PDF or build another."
             >
               <CVPreview cv={cv} />
+
+              <ContactBlock
+                cv={cv}
+                enriching={enriching}
+                note={enrichNote}
+                onEnrich={enrich}
+              />
+
               <div className="mt-6 flex flex-wrap gap-3">
                 <Primary onClick={download} loading={loading} inline>
                   {loading ? "Rendering…" : "↓ Download PDF"}
@@ -500,6 +575,117 @@ function MatchCard({ match }: { match: MatchCandidate }) {
 }
 
 /* ---------- CV preview (mirrors the PDF) ---------- */
+
+/* ---------- Contact enrichment (Prospeo) ---------- */
+
+function ContactBlock({
+  cv,
+  enriching,
+  note,
+  onEnrich,
+}: {
+  cv: CandidateCV;
+  enriching: null | "email" | "phone";
+  note: { kind: "ok" | "miss"; text: string } | null;
+  onEnrich: (mode: "email" | "phone") => void;
+}) {
+  const email = cv.contact?.email;
+  const phone = cv.contact?.phone;
+  const busy = enriching !== null;
+
+  return (
+    <div className="mt-6 rounded-xl border border-[var(--panel-line)] bg-[var(--ink-2)] p-5">
+      <div className="flex items-baseline justify-between gap-3 mb-4">
+        <h3 className="font-display font-semibold text-[15px]">Contact details</h3>
+        <span className="text-[11px] font-mono text-[var(--faint)]">
+          via Prospeo
+        </span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {/* Email */}
+        <div className="rounded-lg border border-[var(--panel-line)] bg-[var(--panel)] p-4">
+          <div className="text-[11px] uppercase tracking-wide text-[var(--faint)] mb-1">
+            Work email
+          </div>
+          {email ? (
+            <div className="min-w-0">
+              <a
+                href={`mailto:${email}`}
+                className="block truncate text-sm text-[var(--text)] hover:text-[var(--violet-lite)] transition"
+              >
+                {email}
+              </a>
+              {cv.contact?.emailStatus === "verified" && (
+                <span className="mt-1 inline-block text-[11px] text-[var(--good)]">
+                  Verified
+                </span>
+              )}
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-[var(--muted)] mb-3">Not looked up yet.</p>
+              <button
+                onClick={() => onEnrich("email")}
+                disabled={busy}
+                className="rounded-lg bg-[var(--violet)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--violet-lite)] disabled:opacity-40"
+              >
+                {enriching === "email" ? "Looking up…" : "Find email"}
+              </button>
+              <div className="mt-2 text-[11px] font-mono text-[var(--faint)]">
+                1 credit
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Phone */}
+        <div className="rounded-lg border border-[var(--panel-line)] bg-[var(--panel)] p-4">
+          <div className="text-[11px] uppercase tracking-wide text-[var(--faint)] mb-1">
+            Mobile
+          </div>
+          {phone ? (
+            <a
+              href={`tel:${phone.replace(/\s+/g, "")}`}
+              className="block truncate text-sm text-[var(--text)] hover:text-[var(--violet-lite)] transition"
+            >
+              {phone}
+            </a>
+          ) : (
+            <>
+              <p className="text-sm text-[var(--muted)] mb-3">Not looked up yet.</p>
+              <button
+                onClick={() => onEnrich("phone")}
+                disabled={busy}
+                className="rounded-lg border border-[var(--violet)] px-4 py-2 text-sm font-semibold text-[var(--violet-lite)] transition hover:bg-[var(--violet)] hover:text-white disabled:opacity-40"
+              >
+                {enriching === "phone" ? "Looking up…" : "Find phone"}
+              </button>
+              <div className="mt-2 text-[11px] font-mono text-[var(--faint)]">
+                10 credits · includes email
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {note && (
+        <p
+          className={`mt-3 text-xs ${
+            note.kind === "ok" ? "text-[var(--good)]" : "text-[var(--warn)]"
+          }`}
+        >
+          {note.text}
+        </p>
+      )}
+
+      <p className="mt-3 text-[11px] text-[var(--faint)]">
+        Anything found is added to the PDF. Nothing is guessed — if Prospeo has no
+        record, the field stays empty and no credits are charged.
+      </p>
+    </div>
+  );
+}
 
 function CVPreview({ cv }: { cv: CandidateCV }) {
   return (
