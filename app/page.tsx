@@ -386,7 +386,7 @@ function Footer() {
       <div className="max-w-6xl mx-auto px-5 sm:px-8 py-5 text-[12px] text-[var(--faint)] flex flex-wrap items-center gap-1.5">
         <span>Made by</span>
         <a
-          href="https://hire-daniyal.vercel.app"
+          href="https://www.linkedin.com/in/daniyal-aziz-643309246"
           target="_blank"
           rel="noreferrer"
           className="text-[var(--muted)] hover:text-[var(--violet-lite)] underline underline-offset-2 transition"
