@@ -3,7 +3,7 @@ import "./globals.css";
 import { display, body, mono } from "./fonts";
 
 export const metadata: Metadata = {
-  title: "CV Builder · RecruiterGTM",
+  title: "CV Builder · Transilvania HR",
   description:
     "Paste a candidate profile, confirm the match, and generate a polished branded CV.",
 };

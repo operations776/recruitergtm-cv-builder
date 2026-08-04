@@ -379,20 +379,24 @@ function TopBar({
   onOpenHistory: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--panel-line)] bg-[rgba(15,11,30,0.82)] backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-[var(--panel-line)] bg-[rgba(12,20,32,0.82)] backdrop-blur">
       <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center gap-3">
         <Image
-          src="/logo.png"
-          alt="RecruiterGTM"
-          width={36}
-          height={36}
-          className="rounded-lg"
+          src="/th-logo.png"
+          alt="Transilvania HR"
+          width={168}
+          height={31}
+          priority
+          className="h-[26px] w-auto"
         />
+        <div className="hidden sm:block h-6 w-px bg-[var(--panel-line)] mx-1" />
         <div className="leading-tight">
           <div className="font-display font-semibold tracking-tight text-[15px]">
             CV Builder
           </div>
-          <div className="text-[11px] text-[var(--muted)]">by RecruiterGTM</div>
+          <div className="text-[11px] text-[var(--muted)]">
+            AI candidate profiles
+          </div>
         </div>
 
         {showHistoryButton && (
@@ -494,12 +498,12 @@ function Footer() {
         </a>
         <span>·</span>
         <a
-          href="https://recruitergtm.io"
+          href="https://transilvaniahr.com"
           target="_blank"
           rel="noreferrer"
           className="text-[var(--muted)] hover:text-[var(--violet-lite)] underline underline-offset-2 transition"
         >
-          RecruiterGTM
+          Transilvania HR
         </a>
       </div>
     </footer>
@@ -960,7 +964,7 @@ function CVPreview({ cv }: { cv: CandidateCV }) {
     <div className="rounded-xl overflow-hidden border border-[var(--panel-line)] bg-white text-[#1a1a1a]">
       <div className="h-1.5 bg-gradient-to-r from-[var(--violet)] to-[var(--violet-lite)]" />
       <div className="grid grid-cols-1 sm:grid-cols-[190px_1fr]">
-        <aside className="bg-[#f5f3ff] p-5 space-y-4">
+        <aside className="bg-[#ecfaf4] p-5 space-y-4">
           <div>
             {cv.photo && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -973,7 +977,7 @@ function CVPreview({ cv }: { cv: CandidateCV }) {
             <div className="font-display text-lg font-semibold leading-tight">
               {cv.name}
             </div>
-            <div className="text-[11px] text-[#7c3aed] mt-1 leading-snug">
+            <div className="text-[11px] text-[#12876a] mt-1 leading-snug">
               {cv.headline}
             </div>
           </div>
@@ -1018,8 +1022,8 @@ function CVPreview({ cv }: { cv: CandidateCV }) {
 
         <section className="p-5 space-y-4">
           <div className="flex justify-end">
-            <span className="font-display text-[13px] font-bold text-[#7c3aed]">
-              RecruiterGTM
+            <span className="font-display text-[13px] font-bold text-[#12876a]">
+              Transilvania HR
             </span>
           </div>
           {cv.about && (
@@ -1076,7 +1080,7 @@ function PreviewChips({ label, items }: { label: string; items: string[] }) {
         {items.slice(0, 12).map((k, i) => (
           <span
             key={i}
-            className="text-[10px] bg-white text-[#5b21b6] rounded px-1.5 py-0.5 border border-[#e5e7eb] max-w-full break-words leading-snug"
+            className="text-[10px] bg-white text-[#0f6f57] rounded px-1.5 py-0.5 border border-[#e5e7eb] max-w-full break-words leading-snug"
           >
             {k}
           </span>
@@ -1093,7 +1097,7 @@ function PreviewChips({ label, items }: { label: string; items: string[] }) {
 
 function SideH({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[10px] font-bold uppercase tracking-wider text-[#5b21b6] mb-1.5">
+    <div className="text-[10px] font-bold uppercase tracking-wider text-[#0f6f57] mb-1.5">
       {children}
     </div>
   );
@@ -1101,7 +1105,7 @@ function SideH({ children }: { children: React.ReactNode }) {
 
 function MainH({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[11px] font-bold uppercase tracking-wider text-[#5b21b6] border-b border-[#e5e7eb] pb-1 mb-2">
+    <div className="text-[11px] font-bold uppercase tracking-wider text-[#0f6f57] border-b border-[#e5e7eb] pb-1 mb-2">
       {children}
     </div>
   );

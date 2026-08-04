@@ -3,15 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --ink: #0f0b1e;
-  --ink-2: #171227;
-  --panel: #1c1633;
-  --panel-line: #2b2347;
-  --violet: #7c3aed;
-  --violet-lite: #a855f7;
-  --text: #f3f0fb;
-  --muted: #9b93b5;
-  --faint: #6a6288;
+  /* Transilvania HR brand — mint-teal green on navy (matches transilvaniahr.com).
+     The --violet* names are kept so existing class references still resolve;
+     only the values changed from purple to green. */
+  --ink: #0c1420;
+  --ink-2: #121c2c;
+  --panel: #18233a;
+  --panel-line: #26334a;
+  --violet: #17a67d;
+  --violet-lite: #3ad8a6;
+  --text: #eaf3f0;
+  --muted: #93a6b2;
+  --faint: #62778a;
   --good: #34d399;
   --warn: #fbbf24;
   --bad: #f87171;
@@ -37,8 +40,8 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(60rem 40rem at 12% -8%, rgba(124, 58, 237, 0.22), transparent 60%),
-    radial-gradient(50rem 40rem at 100% 0%, rgba(168, 85, 247, 0.12), transparent 55%);
+    radial-gradient(60rem 40rem at 12% -8%, rgba(23, 166, 125, 0.20), transparent 60%),
+    radial-gradient(50rem 40rem at 100% 0%, rgba(58, 216, 166, 0.10), transparent 55%);
   pointer-events: none;
   z-index: 0;
 }

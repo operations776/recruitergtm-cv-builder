@@ -1,4 +1,4 @@
-// Polished two-column CV, RecruiterGTM branded, rendered with @react-pdf/renderer.
+// Polished two-column CV, Transilvania HR branded, rendered with @react-pdf/renderer.
 // Left sidebar: contact, skills, languages, certs. Right: profile, experience, education.
 import React from "react";
 import {
@@ -12,9 +12,11 @@ import {
 } from "@react-pdf/renderer";
 import type { CandidateCV } from "./types";
 
-const PURPLE = "#7C3AED";
-const DARK = "#5B21B6";
-const TINT = "#F5F3FF";
+// Transilvania HR brand — green accents, mint sidebar (matches transilvaniahr.com).
+// Names kept as PURPLE/DARK/TINT so downstream style references are untouched.
+const PURPLE = "#15987A";
+const DARK = "#0E7157";
+const TINT = "#EAF8F2";
 const INK = "#1A1A1A";
 const SLATE = "#4B5563";
 const MUTED = "#9CA3AF";
@@ -133,7 +135,7 @@ function Bullet({ text }: { text: string }) {
 export function CVDocument({ cv }: { cv: CandidateCV }) {
   const c = cv.contact || {};
   return (
-    <Document title={`CV - ${cv.name}`} author="RecruiterGTM">
+    <Document title={`CV - ${cv.name}`} author="Transilvania HR">
       <Page size="A4" style={s.page}>
         <View style={s.topbar} fixed />
 
@@ -215,7 +217,7 @@ export function CVDocument({ cv }: { cv: CandidateCV }) {
         <View style={s.main}>
           <View style={s.brandRow}>
             <View>
-              <Text style={s.brandMark}>RecruiterGTM</Text>
+              <Text style={s.brandMark}>Transilvania HR</Text>
               <Text style={s.brandSub}>Candidate profile</Text>
             </View>
           </View>
@@ -369,7 +371,7 @@ export function CVDocument({ cv }: { cv: CandidateCV }) {
             absolutely-positioned fixed element inside the content column made
             react-pdf mis-measure the remaining height and overlap blocks. */}
         <Text style={s.footer} fixed>
-          Prepared by RecruiterGTM
+          Prepared by Transilvania HR
         </Text>
       </Page>
     </Document>
